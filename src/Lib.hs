@@ -2,10 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- Maybe? {-# LANGUAGE OverloadedLists #-}
 
-module Lib
-    ( 
-     mainProcessing
-    ) where
+module Lib where
 
 import Network.Wreq
 import qualified Network.Wreq.Session as S
@@ -57,13 +54,17 @@ TODO: Avoid having to request an API key every time.
 ---------------------- TYPES -----------------------
 type APIKey = Text
 type ServiceID = Int
+type SlotID = Int
+type TicketID = Int
 data Origin = GUIDED | BUTTON | USER | FILAPP deriving (Show, Eq, Read, Enum, Bounded)
 data Role = RUSER | AUDIT deriving (Show, Eq, Read, Enum, Bounded)
 
 data TurnstatService  = TurnstatService
         {serviceID :: Integer
         , serviceName :: String
-        , serviceLetter :: String} deriving (Show, Eq)
+        , serviceLetter :: String
+        , serviceEnabled :: String
+        } deriving (Show, Eq)
 
 data TurnstatTicket = TurnstatTicket
     { tuid :: String
@@ -85,7 +86,7 @@ data Command
     | CreateRandomTicket Int
     | ShowServicesInfo -- ^ Can be later generalized to show other types of information
     | Periodic Int  -- ^ Creates tickets forever not exceeding some count, 
-
+    | CallArbitrary Int  -- ^ Calls an arbitrary ticket given its id
     deriving (Show, Eq)
 
 data ClientOptions = ClientOptions 
@@ -157,10 +158,12 @@ commandParser =
                                           (fullDesc <> progDesc "Get all available services"))
     <|> subparser (command "periodic" $ OP.info (helper <*> createPeriodicallyCommand) 
                                           (fullDesc <> progDesc "Create tickets forever not exceeding some limit"))
+    <|> subparser (command "callticket" $ OP.info (helper <*> callArbitraryTicketCommand) 
+                                          (fullDesc <> progDesc "Call any ticket by id"))
     where 
         createTicketCommand = CreateTicket 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for ticket")
-            <*> option auto (long "service" <> metavar "SERVICE" <> help "Serive ID")
+            <*> option auto (long "service" <> metavar "SERVICE" <> help "Service ID")
         createDuplicateCommand = CreateDuplicate 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for first ticket")
             <*> option auto (long "origin2" <> metavar "ORIGIN" <> help "Origin for second ticket")
@@ -171,6 +174,9 @@ commandParser =
         createPeriodicallyCommand = Periodic
             <$> option auto (long "maxLimit" <> metavar "LIMIT" 
                             <> help "Create tickets periodically not exceeding some count")
+        callArbitraryTicketCommand = CallArbitrary
+            <$> option auto (long "callAny" <> metavar "TICKET_ID" 
+                            <> help "Call any waiting ticket")
 
 
 ------------------------------- MAIN -----------------------------
@@ -218,11 +224,20 @@ mainProcessing = do
         Periodic n -> do
             forever $ do
                 withOptions clientOpts $ do
-                            api_key <- authenticate'
-                            liftIO $ print api_key
-                            wt <- (sum . map snd) <$> allWaitingTickets'
-                            if n < wt then createRandomTickets' api_key 1 else return ()
+                    api_key <- authenticate'
+                    liftIO $ print api_key
+                    wt <- (sum . map snd) <$> allWaitingTickets'
+                    if n < wt then createRandomTickets' api_key 1 else return ()
                         
+        -- Calls and finishes a ticket right away
+        CallArbitrary n -> do
+            withOptions clientOpts $ do 
+                    api_key <- authenticate'
+                    slot <- setSlot 34 api_key 
+                    liftIO $ putStrLn $ "Calling ticket from slot: " ++ slot
+                    res  <- callArbitraryTicket api_key n
+                    finishTicket api_key n
+                    liftIO $ print res
 
 
 -- | Querires all available services and creates the same ticket for a service chosen 
@@ -329,9 +344,10 @@ getAllServices sess api_key = do
         let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
         let servId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
         let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
+        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
         let readInt = read . cs :: Text -> Integer 
-        let z = zip3 servId names servChar 
-        let res = getZipList $ fmap (\(i,n,p) -> TurnstatService (readInt i) (cs n) (cs p)) $ ZipList z
+        let wrap = ZipList . map cs
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (wrap names) <*> (wrap servChar) <*> (wrap enabled))
         return (res)
 
 -- | Returns a list of all posible services
@@ -343,9 +359,10 @@ getAllServices' api_key = do
         let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
         let servId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
         let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
+        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
         let readInt = read . cs :: Text -> Integer 
-        let z = zip3 servId names servChar 
-        let res = getZipList $ fmap (\(i,n,p) -> TurnstatService (readInt i) (cs n) (cs p)) $ ZipList z
+        let wrap = ZipList . map cs
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (wrap names) <*> (wrap servChar) <*> (wrap enabled))
         return (res)
 
 createTicket :: Session -> APIKey -> ServiceID -> Origin -> IO ()
@@ -369,9 +386,31 @@ createTicket' api_key sId origin = do
         let printable =  res ^. responseBody . key "printable" . _String
         return (cs printable)
 
+finishTicketURL = "ticket_management/finish.php"
+finishTicket :: APIKey -> Int -> Rdr String
+finishTicket api_key tid = do
+        sess <- readSess
+        baseURL <- readBaseURL
+        let params = ["ticket_id" := show tid]
+        res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> finishTicketURL) params
+        liftIO $ print res
+        let didSucced =  res ^. responseBody . key "result" . _String
+        return $ cs didSucced
+
+callArbitraryTicketURL = "ticket_management/call_arbitrary.php"
+callArbitraryTicket :: APIKey -> Int -> Rdr String
+callArbitraryTicket api_key tid = do
+        sess <- readSess
+        baseURL <- readBaseURL
+        let params = ["ticket_id" := show tid]
+        res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> callArbitraryTicketURL) params
+        liftIO $ print res
+        let didSucced =  res ^. responseBody . key "result" . _String
+        return $ cs didSucced
+
+
 -- | Starts calling tickets. Needs to be used in conjuction with withModule
 callTicketsURL = "ticket_management/call.php"
---callTickets = error "Call ticket not implemented"
 callTickets :: APIKey -> Rdr (Maybe Integer)
 callTickets api_key = do
         sess <- readSess
