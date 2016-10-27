@@ -14,6 +14,7 @@ type SlotID = Int
 type TicketID = Int
 data Origin = GUIDED | BUTTON | USER | FILAPP deriving (Show, Eq, Read, Enum, Bounded)
 data Role = RUSER | AUDIT deriving (Show, Eq, Read, Enum, Bounded)
+data Printable = Printable {printableLetter :: String, printableNumber :: Int} 
 
 data TurnstatService  = TurnstatService
         {serviceID :: Integer
@@ -61,3 +62,12 @@ type TimeState a = StateT ControlState IO a
 -- Wreq Session and a ClientConfig tuple while doing IO
 type Rdr a = ReaderT (Session, ClientConfig) IO a
 
+--------------------------------- INSTANCES ---------------------
+
+instance Show Printable  where
+    show (Printable l n) = "Printable "  ++ l ++ "-" ++ (show n)
+
+instance Read Printable where
+    readsPrec _ str =  do
+        (l,n) <- lex str 
+        return (Printable l (read $ tail n), "") 

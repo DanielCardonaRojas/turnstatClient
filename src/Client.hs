@@ -11,9 +11,7 @@ import Control.Lens hiding (Level (..))
 
 import Data.Text (Text (..), pack)
 import Data.Monoid
-import System.Random
 import Data.String.Conversions
-import Data.Maybe (fromJust)
 import Data.Time
 
 import Control.Concurrent (threadDelay, forkIO)
@@ -21,7 +19,7 @@ import Control.Monad.Reader
 import Control.Monad.State
 import qualified Control.Monad.State as ST
 import Control.Monad.Trans
-import Control.Applicative
+import Control.Applicative (ZipList (..))
 
 import Types
 
@@ -134,7 +132,7 @@ createTicket' api_key sId origin = do
         baseURL <- readBaseURL
         let params = ["service" := sId, "origin" := show origin]
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> createTicketURL) params
-        liftIO $ print res
+        --liftIO $ print res
         let printable =  res ^. responseBody . key "printable" . _String
         return (cs printable)
 
@@ -177,13 +175,11 @@ callTickets api_key = do
         return ticketID
 
 getWaitingTicketsURL = "ticket_management/get_waiting_tickets.php"
---getWaitingTickets = error "Call ticket not implemented"
 getWaitingTickets :: APIKey -> Rdr String
 getWaitingTickets api_key = do
         sess <- readSess
         baseURL <- readBaseURL
         let params = [] :: [FormParam] 
-        --res <- liftIO $ S.getWith (post_headers api_key) sess (baseURL <> getWaitingTicketsURL)
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> getWaitingTicketsURL) params
         liftIO $ print res
         let ticketID =  res ^. responseBody . key "count_tickets" . key "count" . _String
@@ -224,6 +220,7 @@ sleep n = threadDelay $ n * 10 ^ 6
 
 -- authenticates for the first time: 
 
+{-
 initialState :: Session -> IO ControlState
 initialState sess = do
     c <- liftIO getCurrentTime
@@ -253,15 +250,15 @@ reauthenticate sess = do
             (cs . apiKey) <$> ST.get
 
 authentication = \s -> initialState s >>= (evalStateT . reauthenticate) s
-
+-}
 
 ---------------------- CONSTANTS ----------------------
 baseURLWithHost cc =  "http://" ++ (hostIP cc) ++ "/index.php/"
 waitingListURL n = "ws/list_waiting_tickets_service_complete/" <> (show n)
 
 base_url, login_url, create_ticket_url :: String 
---base_url = "http://172.16.0.4/index.php/"
-base_url = "http://10.1.2.26/index.php/"
+base_url = "http://172.16.0.4/index.php/"
+--base_url = "http://10.1.2.26/index.php/"
 login_url = base_url <> "login/auth.php"
 
 log_file = "logging.txt"

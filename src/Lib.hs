@@ -11,10 +11,9 @@ import Data.Text (Text (..), pack)
 import Data.Monoid
 import System.Random
 import Data.String.Conversions
-import Data.Maybe (fromJust)
-import Data.Time
 
-import Control.Concurrent (threadDelay, forkIO)
+--import Control.Concurrent (threadDelay, forkIO)
+import Control.Concurrent
 import Control.Monad.Reader
 import Control.Monad.State
 import qualified Control.Monad.State as ST
@@ -71,23 +70,17 @@ mainProcessing = do
                     api_key <- authenticate'
                     createTicket' api_key sId o
                     return ()
-        CreateDuplicate o o2 sId -> requestSameTicket sId o o2
-        --CreateDuplicate o o2 sId -> do 
-            --withOptions clientOpts $ do
-                --services <- getAllServices sess apiKey
-                --putStrLn $ "Found " ++ (show $ length services) ++ " services."
-                --mapM_ print services
-                --let chosen = services !! sId
-                --putStrLn $ "Using service: " ++ show chosen
-                --let createTheTicket o = createTicket' apiKey (fromIntegral $ serviceID chosen) o >>= \p -> liftIO $ print p
-                --forkIO $ runReaderT (createTheTicket o) (sess, cconfig)
-                --runReaderT (createTheTicket o2) (sess, cconfig)
-                --return ()
+
+        CreateDuplicate o o2 sId -> do
+           (t1, t2) <-  requestSameTicket' (clientConfig clientOpts) sId o o2
+           putStrLn $ "First ticket " ++ show t1 ++ " second ticket " ++ show t2
+
         CreateRandomTicket c -> do 
             withOptions clientOpts $ do
                     api_key <- authenticate'
                     createRandomTickets' api_key c
                     return ()
+
         ShowServicesInfo -> do
             withOptions clientOpts $ do
                     api_key <- authenticate'
@@ -127,6 +120,27 @@ requestSameTicket n or1 or2= do
         putStrLn $ "Using service: " ++ show chosen
         forkIO $ createTicket sess apiKey (fromIntegral $ serviceID chosen) or1
         createTicket sess apiKey (fromIntegral $ serviceID chosen) or2
+
+
+-- | requestSameTicket' tries to enqueue to tickets at the same time to see if the resulting printables repeat
+-- this is used to test TurnStat is working right.
+requestSameTicket' :: ClientConfig -> ServiceID -> Origin -> Origin -> IO (Printable, Printable)
+requestSameTicket' cconfig sId o o2= do
+            withSession $ \sess -> do
+                apiKey <- authenticate sess
+                services <- getAllServices sess apiKey
+                putStrLn $ "Found " ++ (show $ length services) ++ " services."
+                mapM_ print services
+                let chosen = services !! sId
+                putStrLn $ "Using service: " ++ show chosen
+                m <- newEmptyMVar
+                let createTheTicket o = createTicket' apiKey (fromIntegral $ serviceID chosen) o
+                let createTheTicketOrg org = runReaderT (createTheTicket org) (sess, cconfig) >>= \t -> putMVar m (read t)
+                forkIO $ createTheTicketOrg o
+                createTheTicketOrg o2
+                x <- takeMVar m
+                r <- takeMVar m
+                return (x,r)
 
 
 -- | Creates a random ticket depending on how many created are in line.
