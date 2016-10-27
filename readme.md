@@ -11,6 +11,39 @@ The current version allows:
 - Set a slot and role for the logged user
 - Request to tickets simultaneusly
 
+Which will be display like this when using the --help option:
+
+```shell
+************************* TURNSTAT CLIENT v0.0.1 ***********************
+
+Usage: turnstatClient --host TARGET [-u|--user USERNAME] [--pass PASSWORD]
+                      (COMMAND | COMMAND | COMMAND | COMMAND | COMMAND |
+                      COMMAND)
+  Query DyD TurnStat v3.1.1 API
+
+Available options:
+  -h,--help                Show this help text
+  --host TARGET            Host running TurnStat
+  -u,--user USERNAME       User used to connect to turnstat (default: "usuario")
+  --pass PASSWORD          Users pass used to connect to turnstat
+
+Available commands:
+  create                   Request a new ticket
+  dcreate                  Create two tickets at the same time
+  rcreate                  Create one or more random tickets
+  services                 Get all available services
+  periodic                 Create tickets forever not exceeding some limit
+  callticket               Call any ticket by id
+```
+
+However each command has its own help so for instance: 
+
+```shell
+./turnstat create --help
+```
+
+will display help for the `create` command
+
 
 ### Depedencies: 
 
