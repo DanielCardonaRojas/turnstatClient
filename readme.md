@@ -27,5 +27,5 @@ stack exec turnstatClient -- --help
 - Reuse API key until expires.
 - Implement more querying functions.
 - Implement tests, to see if a TurnStat installation is working properly.
-- Factor into modules (one for querying functions)
+- Refactor imports and language extensions with stack
 - Choose a library to do logging
