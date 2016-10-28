@@ -48,8 +48,8 @@ commandParser =
                                           (fullDesc <> progDesc "Create two tickets at the same time"))
     <|> subparser (command "rcreate" $ OP.info (helper <*> createRandomCommand) 
                                           (fullDesc <> progDesc "Create one or more random tickets"))
-    <|> subparser (command "services" $ OP.info (helper <*> showServicesCommand) 
-                                          (fullDesc <> progDesc "Get all available services"))
+    <|> subparser (command "showinfo" $ OP.info (helper <*> showInfoCommand) 
+                                          (fullDesc <> progDesc "Get information about service users or slots, defaults to services"))
     <|> subparser (command "periodic" $ OP.info (helper <*> createPeriodicallyCommand) 
                                           (fullDesc <> progDesc "Create tickets forever not exceeding some limit"))
     <|> subparser (command "callticket" $ OP.info (helper <*> callArbitraryTicketCommand) 
@@ -58,16 +58,25 @@ commandParser =
         createTicketCommand = CreateTicket 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for ticket")
             <*> option auto (long "service" <> metavar "SERVICE" <> help "Service ID")
+
         createDuplicateCommand = CreateDuplicate 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for first ticket")
             <*> option auto (long "origin2" <> metavar "ORIGIN" <> help "Origin for second ticket")
             <*> option auto (long "service" <> metavar "SERVICE" <> help "Serive ID")
+
         createRandomCommand = CreateRandomTicket
             <$> option auto (long "count" <> metavar "COUNT" <> help "How many" <> showDefault <> value 1)
-        showServicesCommand = pure ShowServicesInfo
+
+        --showInfoCommand = pure ShowServicesInfo
+        showInfoCommand = ShowInfo <$> 
+            (flag Services Slots (long "slots" <> showDefault) 
+            <|> flag Services Users (long "users") 
+            )
+
         createPeriodicallyCommand = Periodic
             <$> option auto (long "maxLimit" <> metavar "LIMIT" 
                             <> help "Create tickets periodically not exceeding some count")
+
         callArbitraryTicketCommand = CallArbitrary
             <$> option auto (long "callAny" <> metavar "TICKET_ID" 
                             <> help "Call any waiting ticket")

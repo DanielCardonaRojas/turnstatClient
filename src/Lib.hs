@@ -68,24 +68,34 @@ mainProcessing = do
         CreateTicket o sId -> do
             withOptions clientOpts $ do
                     api_key <- authenticate'
-                    createTicket' api_key sId o
-                    return ()
+                    t <- createTicket' api_key sId o
+                    liftIO $ print t
 
         CreateDuplicate o o2 sId -> do
            (t1, t2) <-  requestSameTicket' (clientConfig clientOpts) sId o o2
-           putStrLn $ "First ticket " ++ show t1 ++ " second ticket " ++ show t2
+           putStrLn $ "First " ++ show t1 ++ " second " ++ show t2
 
         CreateRandomTicket c -> do 
             withOptions clientOpts $ do
                     api_key <- authenticate'
-                    createRandomTickets' api_key c
-                    return ()
+                    ts <- createRandomTickets' api_key c
+                    liftIO $ putStrLn "Created random tickets: "
+                    liftIO (mapM_ print ts)
 
-        ShowServicesInfo -> do
-            withOptions clientOpts $ do
-                    api_key <- authenticate'
-                    services <- getAllServices' api_key
-                    liftIO $ mapM_ print services
+        ShowInfo x -> do
+            case x of 
+                Services ->  do 
+                    withOptions clientOpts $ do
+                            api_key <- authenticate'
+                            services <- getAllServices' api_key
+                            liftIO $ mapM_ print services
+                Slots ->
+                    withOptions clientOpts $ do
+                            api_key <- authenticate'
+                            slots <- getAllSlots' api_key
+                            liftIO $ mapM_ print slots
+                _ -> return ()
+
         -- Needs either an active turnstat or calling bots
         -- calls all tickets from a default service
         Periodic n -> do
@@ -94,7 +104,7 @@ mainProcessing = do
                     api_key <- authenticate'
                     liftIO $ print api_key
                     wt <- (sum . map snd) <$> allWaitingTickets'
-                    if n < wt then createRandomTickets' api_key 1 else return ()
+                    if n < wt then createRandomTickets' api_key 1 >> return () else return ()
                         
         -- Calls and finishes a ticket right away
         CallArbitrary n -> do
@@ -107,24 +117,10 @@ mainProcessing = do
                     liftIO $ print res
 
 
--- | Querires all available services and creates the same ticket for a service chosen 
--- by an index
-requestSameTicket :: Int -> Origin -> Origin -> IO ()
-requestSameTicket n or1 or2= do
-    withSession $ \sess -> do
-        apiKey <- authenticate sess
-        services <- getAllServices sess apiKey
-        putStrLn $ "Found " ++ (show $ length services) ++ " services."
-        mapM_ print services
-        let chosen = services !! n
-        putStrLn $ "Using service: " ++ show chosen
-        forkIO $ createTicket sess apiKey (fromIntegral $ serviceID chosen) or1
-        createTicket sess apiKey (fromIntegral $ serviceID chosen) or2
-
-
 -- | requestSameTicket' tries to enqueue to tickets at the same time to see if the resulting printables repeat
 -- this is used to test TurnStat is working right.
-requestSameTicket' :: ClientConfig -> ServiceID -> Origin -> Origin -> IO (Printable, Printable)
+--requestSameTicket' :: ClientConfig -> ServiceID -> Origin -> Origin -> IO (Printable, Printable)
+requestSameTicket' :: ClientConfig -> ServiceID -> Origin -> Origin -> IO (TurnstatTicket, TurnstatTicket)
 requestSameTicket' cconfig sId o o2= do
             withSession $ \sess -> do
                 apiKey <- authenticate sess
@@ -135,13 +131,11 @@ requestSameTicket' cconfig sId o o2= do
                 putStrLn $ "Using service: " ++ show chosen
                 m <- newEmptyMVar
                 let createTheTicket o = createTicket' apiKey (fromIntegral $ serviceID chosen) o
-                let createTheTicketOrg org = runReaderT (createTheTicket org) (sess, cconfig) >>= \t -> putMVar m (read t)
-                forkIO $ createTheTicketOrg o
-                createTheTicketOrg o2
+                let createTheTicketOrg org = runReaderT (createTheTicket org) (sess, cconfig)
+                forkIO $ createTheTicketOrg o >>= putMVar m
+                r <- createTheTicketOrg o2
                 x <- takeMVar m
-                r <- takeMVar m
                 return (x,r)
-
 
 -- | Creates a random ticket depending on how many created are in line.
 createTicketsPeriodically :: Session -> APIKey -> IO ()
@@ -159,21 +153,19 @@ createTicketsPeriodically sess api_key = do
                     else return () 
 
 
-createRandomTickets' :: APIKey -> Int -> Rdr ()
+createRandomTickets' :: APIKey -> Int -> Rdr [TurnstatTicket]
 createRandomTickets' api_key count = do  
                 sess <- readSess
                 liftIO $ print $ "received api key: " <> api_key  
-                -- Gets an array of waiting tickets 
-                numbs <- map snd <$> allWaitingTickets'
-                allSerives <- getAllServices' api_key
+                allSerives <- filter ((== "t") . serviceEnabled) <$> getAllServices' api_key
                 let servicesCount = length allSerives
-                rs <- liftIO (randomRIO (0,servicesCount) :: IO Int)
-                let randomService = allSerives !! rs
-                r <- liftIO (randomRIO (0,fromEnum (maxBound :: Origin)) :: IO Int)
-                let randomService = allSerives !! rs
-                let randomOrigin = toEnum r :: Origin
+                let randomsRIO (a,b) = replicateM count $ randomRIO (a,b)
+                rs <- liftIO (randomsRIO (0,servicesCount - 1) :: IO [Int])
+                ro <- liftIO (randomsRIO (0,fromEnum (maxBound :: Origin)) :: IO [Int])
+                let randomService = map (fromIntegral . serviceID . (allSerives !!)) rs
+                let randomOrigin = map toEnum ro :: [Origin]
                 liftIO $ putStrLn $ "Using random service: " ++ (show randomService)
-                replicateM_ count $ createTicket' api_key rs randomOrigin 
+                mapM (uncurry $ createTicket' api_key) (zip randomService randomOrigin)
 {-
 --------------------- Logging -------------------
 -- | Logs all levels using a label l and a file f 

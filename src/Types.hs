@@ -12,9 +12,10 @@ type APIKey = Text
 type ServiceID = Int
 type SlotID = Int
 type TicketID = Int
-data Origin = GUIDED | BUTTON | USER | FILAPP deriving (Show, Eq, Read, Enum, Bounded)
+-- -- | Filapp origin cant be used from this client at least in this first version.
+data Origin = GUIDED | BUTTON | USER deriving (Show, Eq, Read, Enum, Bounded)
 data Role = RUSER | AUDIT deriving (Show, Eq, Read, Enum, Bounded)
-data Printable = Printable {printableLetter :: String, printableNumber :: Int} 
+data Printable = Printable {printableLetter :: String, printableNumber :: Int} deriving (Eq)
 
 data TurnstatService  = TurnstatService
         {serviceID :: Integer
@@ -25,9 +26,14 @@ data TurnstatService  = TurnstatService
 
 data TurnstatTicket = TurnstatTicket
     { tuid :: String
-    , printable :: String
+    , printable :: Printable
     } deriving (Show, Eq)
 
+data TurnstatSlot = TurnstatSlot
+    { slotID :: String
+    , slotName :: String
+    , slotEnabled :: String
+    } deriving (Show, Read, Eq)
 
 
 data ClientConfig = ClientConfig
@@ -43,10 +49,18 @@ data Command
     = CreateTicket Origin ServiceID
     | CreateDuplicate Origin Origin ServiceID -- ^ Creates to tickets at the same time for the same service
     | CreateRandomTicket ServiceID
-    | ShowServicesInfo -- ^ Can be later generalized to show other types of information
+    -- ShowServicesInfo -- ^ Can be later generalized to show other types of information
+    | ShowInfo GetInfo -- ^ Can be later generalized to show other types of information
     | Periodic Int  -- ^ Creates tickets forever not exceeding some count, 
     | CallArbitrary Int  -- ^ Calls an arbitrary ticket given its id
     deriving (Show, Eq)
+
+data GetInfo
+    = Services
+    | Slots 
+    | Users
+    deriving (Show, Eq)
+    
 
 data ClientOptions = ClientOptions 
     {

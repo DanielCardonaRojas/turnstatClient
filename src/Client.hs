@@ -96,8 +96,8 @@ getAllServices sess api_key = do
         let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
         let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
         let readInt = read . cs :: Text -> Integer 
-        let wrap = ZipList . map cs
-        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (wrap names) <*> (wrap servChar) <*> (wrap enabled))
+        let adapt = ZipList . map cs
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
         return (res)
 
 -- | Returns a list of all posible services
@@ -111,9 +111,29 @@ getAllServices' api_key = do
         let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
         let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
         let readInt = read . cs :: Text -> Integer 
-        let wrap = ZipList . map cs
-        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (wrap names) <*> (wrap servChar) <*> (wrap enabled))
+        let adapt = ZipList . map cs
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
         return (res)
+
+-- | Returns a list of all posible services
+getAllSlotsURL = "setup/slots_get_all.php"
+--type Slots = (String,Int, Bool) -- ^ name and id 
+--type Slots = (String,String, String) -- ^ name and id 
+getAllSlots' :: APIKey -> Rdr [TurnstatSlot]
+getAllSlots' api_key = do 
+        sess <- readSess
+        baseURL <- readBaseURL
+        r <- liftIO $ S.getWith (post_headers api_key) sess $ baseURL <> getAllSlotsURL
+        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
+        let slotId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
+        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
+        let adapt f = ZipList . map f
+        --let res = getZipList (TurnstatSlot <$> (adapt readAny slotId) <*> (adapt readAny names) <*> (adapt readAny enabled))
+        let res = getZipList (TurnstatSlot <$> (adapt cs slotId) <*> (adapt cs names) <*> (adapt cs enabled))
+        return (res)
+
+readAny :: Read a => Text -> a 
+readAny =  read . cs
 
 createTicket :: Session -> APIKey -> ServiceID -> Origin -> IO ()
 createTicket sess api_key sId origin = do
@@ -126,7 +146,7 @@ createTicket sess api_key sId origin = do
 
 -- | Creates a ticket for some origin and service id.
 createTicketURL =  "ticket_management/create.php"
-createTicket' :: APIKey -> ServiceID -> Origin -> Rdr String
+createTicket' :: APIKey -> ServiceID -> Origin -> Rdr TurnstatTicket
 createTicket' api_key sId origin = do
         sess <- readSess
         baseURL <- readBaseURL
@@ -134,7 +154,9 @@ createTicket' api_key sId origin = do
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> createTicketURL) params
         --liftIO $ print res
         let printable =  res ^. responseBody . key "printable" . _String
-        return (cs printable)
+        let tuid =  res ^. responseBody . key "tuid" . _String
+        let tkt = TurnstatTicket (cs tuid) (read $ cs printable) 
+        return tkt 
 
 -- | Changes a tickets status from SERVING to FINISHED
 finishTicketURL = "ticket_management/finish.php"

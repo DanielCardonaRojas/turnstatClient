@@ -29,3 +29,4 @@ spec = do
         it "Requesting two tiquets simultaniously never results in same Printable" $ do
             (p1,p2) <- requestSameTicket' defaultClientConfig 1 GUIDED BUTTON
             (p1 `shouldSatisfy` \p -> printableNumber p == (printableNumber p2 + 1) || printableNumber p2 == (printableNumber p + 1))
+
