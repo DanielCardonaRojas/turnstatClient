@@ -1,18 +1,23 @@
 import Test.Hspec
 import Client
 import Types
-import Lib
+import Process
 import Network.Wreq.Session (withSession, Session(..))
 import Control.Monad.Trans
+
+import GenericUtils
 
 main :: IO ()
 main = hspec spec
 
 
+isEqual f x = f `is` (== x)
+
+
 spec :: Spec
 spec = do
     describe "Running Networking tests" $ do
-        describe "Retreiving data" $ do
+        describe "Retreiving data from default host" $ do
             it "There are enabled services" $ do
                 withOptions (ClientOptions defaultClientConfig (ShowInfo Services)) $ do
                     api_key <- authenticate'

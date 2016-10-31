@@ -45,7 +45,7 @@ authenticate sess = do
         return api_key
 
 loginURL = "login/auth.php"
-authenticate' :: Rdr Text
+authenticate' :: Rdr APIKey
 authenticate' = do 
         sess <- readSess
         baseURL <- readBaseURL
@@ -117,8 +117,6 @@ getAllServices' api_key = do
 
 -- | Returns a list of all posible services
 getAllSlotsURL = "setup/slots_get_all.php"
---type Slots = (String,Int, Bool) -- ^ name and id 
---type Slots = (String,String, String) -- ^ name and id 
 getAllSlots' :: APIKey -> Rdr [TurnstatSlot]
 getAllSlots' api_key = do 
         sess <- readSess

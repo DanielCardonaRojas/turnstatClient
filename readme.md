@@ -31,7 +31,8 @@ Available commands:
   create                   Request a new ticket
   dcreate                  Create two tickets at the same time
   rcreate                  Create one or more random tickets
-  services                 Get all available services
+  showinfo                 Get information about service users or slots,
+                           defaults to services
   periodic                 Create tickets forever not exceeding some limit
   callticket               Call any ticket by id
 ```
@@ -47,11 +48,21 @@ will display help for the `create` command
 
 ### Depedencies: 
 
-It uses wreq for the web client part, optparse-applicate for parsing command line options/flags and HSpec for unit testing.
+It uses [wreq](http://www.serpentine.com/wreq/tutorial.html) for the web client part, 
+[optparse-applicative](https://github.com/pcapriotti/optparse-applicative) for parsing command line options/flags and HSpec for unit testing.
+
+This proyect also uses a custom package hosted here in this same Github account, called [GenericUtils](https://github.com/DanielCardonaRojas/GenericUtils). 
+This is a just a simple package containing easy generic function definitions.
 
 ### Use
 
 From Inside this project: 
+
+**Get a local version of stack** 
+
+```shell
+stack setup
+```
 
 **Compile executable**
 
@@ -67,11 +78,19 @@ stack exec turnstatClient -- create --help
 
 **Test**
 
-Run client tests doing:
+Run client tests doing: 
 
 ```shell
 stack test
 ```
+
+or 
+
+```shell
+stack test turnstatClient
+```
+
+Note these test arent actually testing mucho about this code itself but server response expectations.
 
 **Generate documentation**
 
@@ -93,3 +112,4 @@ This should generate HTML documentation some where in:
 - Refactor imports and language extensions with stack
 - Choose a library to do logging and use.
 - Maybe thread Session, so it doesnt have to be passed around all functions, including it in the Rdr type
+- Separate testing concerns, this library vs response expectations.

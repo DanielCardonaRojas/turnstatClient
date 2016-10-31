@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- Maybe? {-# LANGUAGE OverloadedLists #-}
 
-module Lib where
+module Process where
 
 import Network.Wreq
 import Network.Wreq.Session (Session (..), withSession)

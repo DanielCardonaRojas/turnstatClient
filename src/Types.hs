@@ -49,8 +49,7 @@ data Command
     = CreateTicket Origin ServiceID
     | CreateDuplicate Origin Origin ServiceID -- ^ Creates to tickets at the same time for the same service
     | CreateRandomTicket ServiceID
-    -- ShowServicesInfo -- ^ Can be later generalized to show other types of information
-    | ShowInfo GetInfo -- ^ Can be later generalized to show other types of information
+    | ShowInfo GetInfo -- ^ Get various types of information
     | Periodic Int  -- ^ Creates tickets forever not exceeding some count, 
     | CallArbitrary Int  -- ^ Calls an arbitrary ticket given its id
     deriving (Show, Eq)
