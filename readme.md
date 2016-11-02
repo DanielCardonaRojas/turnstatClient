@@ -107,6 +107,7 @@ This should generate HTML documentation some where in:
 **TODO:**
 
 - Reuse API key until expires.
+- Refresh cookie so calling different hosts works fine.
 - Implement more querying functions.
 - Implement more tests, to see if a TurnStat installation is working properly.
 - Refactor imports and language extensions with stack

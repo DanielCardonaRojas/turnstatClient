@@ -230,6 +230,18 @@ setSlot slotID api_key = do
         let slotName =  res ^. responseBody . key "slot_name" . _String
         return (cs slotName)
 
+printTicketURL = "/ticket_management/print.php"
+-- | printTicket t p s prints a ticket with id t on printer p 
+printTicket :: TicketID -> PrinterID -> APIKey -> Rdr String
+printTicket ticket_id printer_id api_key = do
+        sess <- readSess
+        baseURL <- readBaseURL
+        let params = ["ticket_id" := show ticket_id, "printer_id" := printer_id]
+        res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> printTicketURL) params
+        --liftIO $ print res
+        let resultString =  res ^. responseBody . key "result" . _String
+        return (cs resultString)
+
 post_headers :: APIKey -> Options
 post_headers api_key = defaults & header "turnstat-api-key" .~ [cs api_key]
               -- & header "Content-Type" .~ [cs ("application/x-www-form-urlencoded"::String)]

@@ -52,8 +52,10 @@ commandParser =
                                           (fullDesc <> progDesc "Get information about service users or slots, defaults to services"))
     <|> subparser (command "periodic" $ OP.info (helper <*> createPeriodicallyCommand) 
                                           (fullDesc <> progDesc "Create tickets forever not exceeding some limit"))
-    <|> subparser (command "callticket" $ OP.info (helper <*> callArbitraryTicketCommand) 
+    <|> subparser (command "call" $ OP.info (helper <*> callArbitraryTicketCommand) 
                                           (fullDesc <> progDesc "Call any ticket by id"))
+    <|> subparser (command "print" $ OP.info (helper <*> printTicketCommand) 
+                                          (fullDesc <> progDesc "Print a ticket with some printer"))
     where 
         createTicketCommand = CreateTicket 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for ticket")
@@ -74,11 +76,14 @@ commandParser =
             )
 
         createPeriodicallyCommand = Periodic
-            <$> option auto (long "maxLimit" <> metavar "LIMIT" 
+            <$> option auto (long "maxlimit" <> metavar "LIMIT" 
                             <> help "Create tickets periodically not exceeding some count")
 
         callArbitraryTicketCommand = CallArbitrary
-            <$> option auto (long "callAny" <> metavar "TICKET_ID" 
-                            <> help "Call any waiting ticket")
+            <$> option auto (long "ticket" <> short 't' <> metavar "TICKET_ID" <> help "Call any waiting ticket")
+
+        printTicketCommand = PrintTicket
+            <$> option auto (long "ticket" <> short 't' <> metavar "TICKET_ID" <> help "Ticket Id")
+            <*> option auto (long "printer" <> short 'p' <> metavar "PRINTER_ID" <> help "Printer Id")
 
 

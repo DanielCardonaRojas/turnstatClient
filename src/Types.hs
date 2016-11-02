@@ -12,6 +12,7 @@ type APIKey = Text
 type ServiceID = Int
 type SlotID = Int
 type TicketID = Int
+type PrinterID = Int
 -- -- | Filapp origin cant be used from this client at least in this first version.
 data Origin = GUIDED | BUTTON | USER deriving (Show, Eq, Read, Enum, Bounded)
 data Role = RUSER | AUDIT deriving (Show, Eq, Read, Enum, Bounded)
@@ -51,7 +52,8 @@ data Command
     | CreateRandomTicket ServiceID
     | ShowInfo GetInfo -- ^ Get various types of information
     | Periodic Int  -- ^ Creates tickets forever not exceeding some count, 
-    | CallArbitrary Int  -- ^ Calls an arbitrary ticket given its id
+    | CallArbitrary TicketID  -- ^ Calls an arbitrary ticket given its id
+    | PrintTicket TicketID PrinterID  -- ^ Calls an arbitrary ticket given its id
     deriving (Show, Eq)
 
 data GetInfo

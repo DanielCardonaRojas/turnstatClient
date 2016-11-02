@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE FlexibleContexts #-}
--- Maybe? {-# LANGUAGE OverloadedLists #-}
 
 module Process where
 
@@ -12,7 +11,6 @@ import Data.Monoid
 import System.Random
 import Data.String.Conversions
 
---import Control.Concurrent (threadDelay, forkIO)
 import Control.Concurrent
 import Control.Monad.Reader
 import Control.Monad.State
@@ -23,9 +21,7 @@ import Control.Applicative
 --import Control.Monad.Log
 --import Control.Monad.Log.Label
 
-
 import Options.Applicative
-import Data.Monoid
 import Control.Monad
 
 import Types
@@ -116,6 +112,13 @@ mainProcessing = do
                     finishTicket api_key n
                     liftIO $ print res
 
+        PrintTicket tid pid -> do
+            putStrLn $ "Printing ticket: " ++ (show tid) ++ " using printer: " ++ (show pid)
+            withOptions clientOpts $ do 
+                    api_key <- authenticate'
+                    res <- printTicket tid pid api_key
+                    liftIO $ print res
+
 
 -- | requestSameTicket' tries to enqueue to tickets at the same time to see if the resulting printables repeat
 -- this is used to test TurnStat is working right.
@@ -166,6 +169,7 @@ createRandomTickets' api_key count = do
                 let randomOrigin = map toEnum ro :: [Origin]
                 liftIO $ putStrLn $ "Using random service: " ++ (show randomService)
                 mapM (uncurry $ createTicket' api_key) (zip randomService randomOrigin)
+
 {-
 --------------------- Logging -------------------
 -- | Logs all levels using a label l and a file f 
