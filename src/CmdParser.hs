@@ -56,6 +56,8 @@ commandParser =
                                           (fullDesc <> progDesc "Call any ticket by id"))
     <|> subparser (command "print" $ OP.info (helper <*> printTicketCommand) 
                                           (fullDesc <> progDesc "Print a ticket with some printer"))
+    <|> subparser (command "createuser" $ OP.info (helper <*> createUserCommand) 
+                                          (fullDesc <> progDesc "Create a user with a especific role (USER, AUDIT)"))
     where 
         createTicketCommand = CreateTicket 
             <$> option auto (long "origin" <> metavar "ORIGIN" <> help "Origin for ticket")
@@ -85,5 +87,10 @@ commandParser =
         printTicketCommand = PrintTicket
             <$> option auto (long "ticket" <> short 't' <> metavar "TICKET_ID" <> help "Ticket Id")
             <*> option auto (long "printer" <> short 'p' <> metavar "PRINTER_ID" <> help "Printer Id")
+
+        createUserCommand = CreateUser
+            <$> strOption (long "username" <> metavar "USER_LOGIN" <> help "User name and login name")
+            <*> strOption (long "pass" <> metavar "LOGIN_PASSWORD" <> help "Login password")
+            <*> strOption (long "role" <> metavar "USER_ROLE" <> help "User role")
 
 

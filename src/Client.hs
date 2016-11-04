@@ -242,6 +242,26 @@ printTicket ticket_id printer_id api_key = do
         let resultString =  res ^. responseBody . key "result" . _String
         return (cs resultString)
 
+createUserURL = "setup/users_insert.php"
+createUser :: String -> String -> String -> APIKey -> Rdr String
+createUser userName pass role api_key = do
+        sess <- readSess
+        baseURL <- readBaseURL
+        let params = [ "login" := userName, "name" := userName
+                     , "password" := pass, "password2" := pass
+                     , "role" := role, "template" := show "" 
+                     , "lenguage" := show "es_CO" , "timezone" := show "GMT-5" 
+                     , "policies" := show "1", "email" := show ""
+                     , "phone" := show "", "cellphone" := show ""
+                     , "birthday" := show "10/10/1990", "cellphone" := show ""
+                     , "preferences" := show "{}"
+                     , "policy" := show "[1]"
+                     ]
+        res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> createUserURL) params
+        --liftIO $ print res
+        let resultString =  res ^. responseBody . key "result" . _String
+        return (cs resultString)
+
 post_headers :: APIKey -> Options
 post_headers api_key = defaults & header "turnstat-api-key" .~ [cs api_key]
               -- & header "Content-Type" .~ [cs ("application/x-www-form-urlencoded"::String)]

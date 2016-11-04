@@ -6,6 +6,7 @@ import Control.Monad.State
 import qualified Control.Monad.State as ST
 import Data.Text (Text (..), pack)
 import Data.Time
+import Data.Char
 
 ---------------------- TYPES -----------------------
 type APIKey = Text
@@ -15,7 +16,7 @@ type TicketID = Int
 type PrinterID = Int
 -- -- | Filapp origin cant be used from this client at least in this first version.
 data Origin = GUIDED | BUTTON | USER deriving (Show, Eq, Read, Enum, Bounded)
-data Role = RUSER | AUDIT deriving (Show, Eq, Read, Enum, Bounded)
+data Role = RUser | RAudit deriving (Show, Eq, Read, Enum, Bounded)
 data Printable = Printable {printableLetter :: String, printableNumber :: Int} deriving (Eq)
 
 data TurnstatService  = TurnstatService
@@ -54,6 +55,7 @@ data Command
     | Periodic Int  -- ^ Creates tickets forever not exceeding some count, 
     | CallArbitrary TicketID  -- ^ Calls an arbitrary ticket given its id
     | PrintTicket TicketID PrinterID  -- ^ Calls an arbitrary ticket given its id
+    | CreateUser String String String  -- ^ Calls an arbitrary ticket given its id
     deriving (Show, Eq)
 
 data GetInfo
@@ -85,4 +87,5 @@ instance Show Printable  where
 instance Read Printable where
     readsPrec _ str =  do
         (l,n) <- lex str 
-        return (Printable l (read $ tail n), "") 
+        let upperCase = map toUpper
+        return (Printable (upperCase l) (read $ tail n), "") 

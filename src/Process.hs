@@ -119,6 +119,13 @@ mainProcessing = do
                     res <- printTicket tid pid api_key
                     liftIO $ print res
 
+        CreateUser name pass role -> do
+            putStrLn $ "Creating user with name: " ++ (show name) ++ " role: " ++ (show role)
+            withOptions clientOpts $ do 
+                    api_key <- authenticate'
+                    res <- createUser name pass role api_key
+                    liftIO $ print res
+
 
 -- | requestSameTicket' tries to enqueue to tickets at the same time to see if the resulting printables repeat
 -- this is used to test TurnStat is working right.
