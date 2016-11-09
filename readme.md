@@ -49,7 +49,7 @@ will display help for the `create` command
 ### Depedencies: 
 
 It uses [wreq](http://www.serpentine.com/wreq/tutorial.html) for the web client part, 
-[optparse-applicative](https://github.com/pcapriotti/optparse-applicative) for parsing command line options/flags and HSpec for unit testing.
+[optparse-applicative](https://github.com/pcapriotti/optparse-applicative) for parsing command line options/flags and [HSpec](http://hspec.github.io/) for unit testing.
 
 This proyect also uses a custom package hosted here in this same Github account, called [GenericUtils](https://github.com/DanielCardonaRojas/GenericUtils). 
 This is a just a simple package containing easy generic function definitions.
@@ -75,6 +75,8 @@ To use in conjunction with stack use a double hiphen to pass arguments to the ex
 stack exec turnstatClient -- --help
 stack exec turnstatClient -- create --help
 ```
+
+After this the excutable can be found in .stack-work/dist/<YOUR_OS>/Cabal-x.x.x.x/build/turnstatClient
 
 **Test**
 

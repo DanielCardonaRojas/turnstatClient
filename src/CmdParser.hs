@@ -73,8 +73,8 @@ commandParser =
 
         --showInfoCommand = pure ShowServicesInfo
         showInfoCommand = ShowInfo <$> 
-            (flag Services Slots (long "slots" <> showDefault) 
-            <|> flag Services Users (long "users") 
+            (flag ServicesInfo SlotsInfo (long "slots" <> showDefault) 
+            <|> flag ServicesInfo UsersInfo (long "users") 
             )
 
         createPeriodicallyCommand = Periodic

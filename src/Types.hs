@@ -37,6 +37,13 @@ data TurnstatSlot = TurnstatSlot
     , slotEnabled :: String
     } deriving (Show, Read, Eq)
 
+data TurnstatUser = TurnstatUser
+    { userName :: String
+    , userLogin :: String
+    , userRole :: String
+    , userEmail :: String
+    } deriving (Show, Eq, Read)
+
 
 data ClientConfig = ClientConfig
   { 
@@ -59,9 +66,9 @@ data Command
     deriving (Show, Eq)
 
 data GetInfo
-    = Services
-    | Slots 
-    | Users
+    = ServicesInfo
+    | SlotsInfo
+    | UsersInfo
     deriving (Show, Eq)
     
 

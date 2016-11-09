@@ -80,17 +80,21 @@ mainProcessing = do
 
         ShowInfo x -> do
             case x of 
-                Services ->  do 
+                ServicesInfo ->  do 
                     withOptions clientOpts $ do
                             api_key <- authenticate'
                             services <- getAllServices' api_key
                             liftIO $ mapM_ print services
-                Slots ->
+                SlotsInfo ->
                     withOptions clientOpts $ do
                             api_key <- authenticate'
                             slots <- getAllSlots' api_key
                             liftIO $ mapM_ print slots
-                _ -> return ()
+                UsersInfo -> 
+                    withOptions clientOpts $ do
+                            api_key <- authenticate'
+                            users <- getAllUsers api_key
+                            liftIO $ mapM_ print users
 
         -- Needs either an active turnstat or calling bots
         -- calls all tickets from a default service

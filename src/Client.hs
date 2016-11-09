@@ -130,6 +130,21 @@ getAllSlots' api_key = do
         let res = getZipList (TurnstatSlot <$> (adapt cs slotId) <*> (adapt cs names) <*> (adapt cs enabled))
         return (res)
 
+
+getAllUsersURL = "setup/users_get_all.php"
+getAllUsers :: APIKey -> Rdr [TurnstatUser]
+getAllUsers api_key = do 
+        sess <- readSess
+        baseURL <- readBaseURL
+        r <- liftIO $ S.getWith (post_headers api_key) sess $ baseURL <> getAllUsersURL
+        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
+        let login =  toListOf (responseBody . key "result" .  _Array . traverse . key "login" . _String) r
+        let role =  toListOf (responseBody . key "result" .  _Array . traverse . key "role" . _String) r
+        let email =  toListOf (responseBody . key "result" .  _Array . traverse . key "email" . _String) r
+        let adapt f = ZipList . map f
+        let res = getZipList (TurnstatUser <$> (adapt cs names) <*> (adapt cs login) <*> (adapt cs role) <*> (adapt cs email))
+        return (res)
+
 readAny :: Read a => Text -> a 
 readAny =  read . cs
 
