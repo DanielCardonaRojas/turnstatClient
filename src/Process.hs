@@ -27,26 +27,6 @@ import Control.Monad
 import Types
 import Client
 import CmdParser
------------------------ QUERY DYD TURNSTAT v.3.1 ------------------ 
-{-
-A client to query turnstat  server
-
-a basic usage of querying functions can be made using the with session to handle cookies AUTOMATICALLY.
-Functions that need an api_key in the header request can be used like this e.g:
-
-    withSession $ \s -> authenticate s >>= getAllServices s
-    or
-    withSession $ \s -> authenticate s >>= (\k -> runReaderT (callTickets k) (s, defaultClientConfig))
-
-COMPILATION: 
-    Compile with stack: stack ghc -- turnstatClient -o turnstatClient
-
-GENERATE DOCUMENTATION:
-    stack haddock
-
-This will leave documentation somewhere arount: 
-    .stack-work/dist/x86_64-osx/Cabal-1.24.0.0/doc/html/turnstatClient/index.html
--}
 
 ------------------------------- MAIN -----------------------------
 withOptions :: ClientOptions -> Rdr a -> IO a
@@ -88,7 +68,7 @@ mainProcessing = do
                 SlotsInfo ->
                     withOptions clientOpts $ do
                             api_key <- authenticate'
-                            slots <- getAllSlots' api_key
+                            slots <- getAllSlots api_key
                             liftIO $ mapM_ print slots
                 UsersInfo -> 
                     withOptions clientOpts $ do
@@ -203,6 +183,7 @@ startLog ls = do
 
 usingLogger :: Logger String -> LogT String IO b -> IO b
 usingLogger lgr commands = runLogTSafe lgr commands
+
     
     
 -}

@@ -1,10 +1,10 @@
 # TurnStat V3.0.1 Client
 
-Is a command line utility that  enables testing the basic functionality of TurnStat software.
+Is a command line utility that  enables testing the basic functionality of DyD TurnStat software.
 
 The current version allows: 
 
-- Create turns
+- Create turns/tickes
 - Call and Finish a Turn
 - Get a list a services
 - Count waiting tickets
@@ -16,14 +16,13 @@ Which will be display like this when using the --help option:
 ```shell
 ************************* TURNSTAT CLIENT v0.0.1 ***********************
 
-Usage: turnstatClient --host TARGET [-u|--user USERNAME] [--pass PASSWORD]
-                      (COMMAND | COMMAND | COMMAND | COMMAND | COMMAND |
-                      COMMAND)
+Usage: turnstatClient HOST [-u|--user USERNAME] [--pass PASSWORD] (COMMAND |
+                      COMMAND | COMMAND | COMMAND | COMMAND | COMMAND | COMMAND
+                      | COMMAND)
   Query DyD TurnStat v3.1.1 API
 
 Available options:
   -h,--help                Show this help text
-  --host TARGET            Host running TurnStat
   -u,--user USERNAME       User used to connect to turnstat (default: "usuario")
   --pass PASSWORD          Users pass used to connect to turnstat
 
@@ -34,7 +33,9 @@ Available commands:
   showinfo                 Get information about service users or slots,
                            defaults to services
   periodic                 Create tickets forever not exceeding some limit
-  callticket               Call any ticket by id
+  call                     Call any ticket by id
+  print                    Print a ticket with some printer
+  createuser               Create a user with a especific role (USER, AUDIT)
 ```
 
 However each command has its own help so for instance: 
@@ -65,6 +66,7 @@ stack setup
 ```
 
 **Compile executable**
+
 
 ```shell
 stack build
@@ -105,6 +107,18 @@ This should generate HTML documentation some where in:
 > .stack-work/dist/x86_64-osx/Cabal-1.24.0.0/doc
 
 
+**Install**
+
+To use from outsite of this proyect and develop:
+
+Move to location where binary is put:
+For example: `.stack-work/install/x86_64-osx/lts-7.5/8.0.1/bin/turnstatClient`
+
+Create a symlink to location in $PATH e.g /usr/local/bin or /opt/local/bin
+
+```shell
+sudo ln -s $PWD/turnstatClient /opt/local/bin/turnstatClient
+```
 
 **TODO:**
 
@@ -116,3 +130,4 @@ This should generate HTML documentation some where in:
 - Choose a library to do logging and use.
 - Maybe thread Session, so it doesnt have to be passed around all functions, including it in the Rdr type
 - Separate testing concerns, this library vs response expectations.
+- Reduce binary size, test binary distribution. (edit the .cabal ghc flags removing -dynamic and just strip the binary: strip turnstatClient)

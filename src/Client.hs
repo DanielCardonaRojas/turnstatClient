@@ -5,7 +5,7 @@ module Client where
 import Network.Wreq
 import qualified Network.Wreq.Session as S
 import Network.Wreq.Session (withAPISession, Session (..), withSession)
-import Data.Aeson.Lens (key,_String, _Array, _Number, _Integral, _Integer)
+import Data.Aeson.Lens (key,_String, _Array, _Number, _Integral, _Integer, AsValue(..))
 import Data.Aeson (Value(..))
 import Control.Lens hiding (Level (..))
 
@@ -85,31 +85,37 @@ allWaitingTickets' = do
     waiting <- mapM waitingTicketsForService services
     return $ zip services waiting
 
+-- | A simple utility takes a key wich indexes a JSON Array of objects and another key to traverse and collect 
+-- a property of each object.
+traverseJSONIn :: AsValue body1 => Text -> Text -> Response body1 -> [Text]
+traverseJSONIn s p r = toListOf (responseBody . key s .  _Array . traverse . key p . _String) r
+
 -- | Returns a list a of all services
 -- withSession $ \s -> authenticate s >>= getAllServices s 
 getAllServicesURL = "setup/services_get_all.php"
 getAllServices :: Session -> APIKey -> IO [TurnstatService]
 getAllServices sess api_key = do 
         r <- S.getWith (post_headers api_key) sess get_all_services_url
-        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
-        let servId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
-        let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
-        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
+        let names =  traverseJSONIn "result" "name" r
+        let servId =  traverseJSONIn "result" "id" r
+        let servChar =  traverseJSONIn "result" "char" r
+        let enabled =  traverseJSONIn "result" "enabled" r
         let readInt = read . cs :: Text -> Integer 
         let adapt = ZipList . map cs
         let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
         return (res)
 
+ 
 -- | Returns a list of all posible services
 getAllServices' :: APIKey -> Rdr [TurnstatService]
 getAllServices' api_key = do 
         sess <- readSess
         baseURL <- readBaseURL
         r <- liftIO $ S.getWith (post_headers api_key) sess $ baseURL <> getAllServicesURL
-        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
-        let servId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
-        let servChar =  toListOf (responseBody . key "result" .  _Array . traverse . key "char" . _String) r
-        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
+        let names =  traverseJSONIn "result" "name" r
+        let servId =  traverseJSONIn "result" "id" r
+        let servChar =  traverseJSONIn "result" "char" r
+        let enabled =  traverseJSONIn "result" "enabled" r
         let readInt = read . cs :: Text -> Integer 
         let adapt = ZipList . map cs
         let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
@@ -117,14 +123,14 @@ getAllServices' api_key = do
 
 -- | Returns a list of all posible services
 getAllSlotsURL = "setup/slots_get_all.php"
-getAllSlots' :: APIKey -> Rdr [TurnstatSlot]
-getAllSlots' api_key = do 
+getAllSlots :: APIKey -> Rdr [TurnstatSlot]
+getAllSlots api_key = do 
         sess <- readSess
         baseURL <- readBaseURL
         r <- liftIO $ S.getWith (post_headers api_key) sess $ baseURL <> getAllSlotsURL
-        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
-        let slotId =  toListOf (responseBody . key "result" .  _Array . traverse . key "id" . _String) r
-        let enabled =  toListOf (responseBody . key "result" .  _Array . traverse . key "enabled" . _String) r
+        let names =  traverseJSONIn "result" "name" r
+        let slotId =  traverseJSONIn "result" "id" r
+        let enabled =  traverseJSONIn "result" "enabled" r
         let adapt f = ZipList . map f
         --let res = getZipList (TurnstatSlot <$> (adapt readAny slotId) <*> (adapt readAny names) <*> (adapt readAny enabled))
         let res = getZipList (TurnstatSlot <$> (adapt cs slotId) <*> (adapt cs names) <*> (adapt cs enabled))
@@ -137,10 +143,10 @@ getAllUsers api_key = do
         sess <- readSess
         baseURL <- readBaseURL
         r <- liftIO $ S.getWith (post_headers api_key) sess $ baseURL <> getAllUsersURL
-        let names =  toListOf (responseBody . key "result" .  _Array . traverse . key "name" . _String) r
-        let login =  toListOf (responseBody . key "result" .  _Array . traverse . key "login" . _String) r
-        let role =  toListOf (responseBody . key "result" .  _Array . traverse . key "role" . _String) r
-        let email =  toListOf (responseBody . key "result" .  _Array . traverse . key "email" . _String) r
+        let names =  traverseJSONIn "result" "name" r
+        let login =  traverseJSONIn "result" "login" r
+        let role =  traverseJSONIn "result" "role" r 
+        let email =  traverseJSONIn "result" "email" r 
         let adapt f = ZipList . map f
         let res = getZipList (TurnstatUser <$> (adapt cs names) <*> (adapt cs login) <*> (adapt cs role) <*> (adapt cs email))
         return (res)

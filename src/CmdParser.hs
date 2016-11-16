@@ -24,10 +24,7 @@ opts =
 -- | Parses ClientConfiguration i.e target host and credentials
 clientConfigParser :: Parser ClientConfig
 clientConfigParser = ClientConfig
-    <$> strOption
-        (  long "host"
-        <> metavar "TARGET"
-        <> help "Host running TurnStat")
+    <$> argument str (metavar "HOST")
     <*> credentials
     where 
         credentials = 
