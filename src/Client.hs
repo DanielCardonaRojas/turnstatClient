@@ -20,6 +20,7 @@ import Control.Monad.State
 import qualified Control.Monad.State as ST
 import Control.Monad.Trans
 import Control.Applicative (ZipList (..))
+import System.Random
 
 import Types
 
@@ -101,8 +102,8 @@ getAllServices sess api_key = do
         let servChar =  traverseJSONIn "result" "char" r
         let enabled =  traverseJSONIn "result" "enabled" r
         let readInt = read . cs :: Text -> Integer 
-        let adapt = ZipList . map cs
-        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
+        let adapt f = ZipList . map f
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt cs names) <*> (adapt cs servChar) <*> (adapt (== "t") enabled))
         return (res)
 
  
@@ -117,8 +118,8 @@ getAllServices' api_key = do
         let servChar =  traverseJSONIn "result" "char" r
         let enabled =  traverseJSONIn "result" "enabled" r
         let readInt = read . cs :: Text -> Integer 
-        let adapt = ZipList . map cs
-        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt names) <*> (adapt servChar) <*> (adapt enabled))
+        let adapt f = ZipList . map f
+        let res = getZipList (TurnstatService <$> (readInt <$> ZipList servId) <*> (adapt cs names) <*> (adapt cs servChar) <*> (adapt (== "t") enabled))
         return (res)
 
 -- | Returns a list of all posible services
@@ -133,7 +134,7 @@ getAllSlots api_key = do
         let enabled =  traverseJSONIn "result" "enabled" r
         let adapt f = ZipList . map f
         --let res = getZipList (TurnstatSlot <$> (adapt readAny slotId) <*> (adapt readAny names) <*> (adapt readAny enabled))
-        let res = getZipList (TurnstatSlot <$> (adapt cs slotId) <*> (adapt cs names) <*> (adapt cs enabled))
+        let res = getZipList (TurnstatSlot <$> (adapt readAny slotId) <*> (adapt cs names) <*> (adapt (== "t") enabled))
         return (res)
 
 
@@ -158,7 +159,7 @@ createTicket :: Session -> APIKey -> ServiceID -> Origin -> IO ()
 createTicket sess api_key sId origin = do
         let params = ["service" := sId, "origin" := show origin]
         res <- S.postWith (post_headers api_key) sess create_ticket_url params
-        print res
+        --print res
         let printable =  res ^. responseBody . key "printable" . _String
         print $ "created ticket " ++ (show printable)
         return ()
@@ -171,10 +172,18 @@ createTicket' api_key sId origin = do
         baseURL <- readBaseURL
         let params = ["service" := sId, "origin" := show origin]
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> createTicketURL) params
-        --liftIO $ print res
+        liftIO $ print res
+        allSlotsIDs <- (map slotID . filter slotEnabled) <$> getAllSlots api_key
+        someSlotID <- liftIO $ chooseRIO allSlotsIDs
+        slotName <- setSlot someSlotID api_key
+        liftIO $ putStrLn $ "Creating ticket from slot" ++ slotName
         let printable =  res ^. responseBody . key "printable" . _String
         let tuid =  res ^. responseBody . key "tuid" . _String
-        let tkt = TurnstatTicket (cs tuid) (read $ cs printable) 
+        --let tid =  res ^. responseBody . key "ticket_id" . _String
+        let tid =  res ^? responseBody . key "ticket_id" . _Integer
+        --let tkt = TurnstatTicket (cs tuid) (read $ cs printable) 
+        --let tkt = TurnstatTicket (readAny tid) (cs tuid) (read $ cs printable) 
+        let tkt = TurnstatTicket (maybe (-1) fromIntegral tid) (cs tuid) (read $ cs printable) 
         return tkt 
 
 -- | Changes a tickets status from SERVING to FINISHED
@@ -235,7 +244,7 @@ setRole slotID api_key = do
         baseURL <- readBaseURL
         let params = ["role" := show "USER"]
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> setRoleURL) params
-        liftIO $ print res
+        --liftIO $ print res
         let slotName =  res ^. responseBody . key "role" . _String
         return ()
 
@@ -247,7 +256,7 @@ setSlot slotID api_key = do
         baseURL <- readBaseURL
         let params = ["slot_id" := show slotID]
         res <- liftIO $ S.postWith (post_headers api_key) sess (baseURL <> setSlotURL) params
-        liftIO $ print res
+        --liftIO $ print res
         let slotName =  res ^. responseBody . key "slot_name" . _String
         return (cs slotName)
 
@@ -290,7 +299,7 @@ post_headers api_key = defaults & header "turnstat-api-key" .~ [cs api_key]
 
 ------------------------ UTILITIES -------------------
 sleep n = threadDelay $ n * 10 ^ 6 
-
+chooseRIO l = (l !!) <$> randomRIO (0, (length l) - 1)
 -- authenticates for the first time: 
 
 {-

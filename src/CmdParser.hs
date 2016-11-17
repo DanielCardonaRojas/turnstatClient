@@ -14,7 +14,7 @@ opts =
     OP.info (helper <*> allCommands)
               ( fullDesc
              <> progDesc "Query DyD TurnStat v3.1.1 API"
-             <> OP.header "\n\n************************* TURNSTAT CLIENT v0.0.1 ***********************\n\n" )
+             <> OP.header "\n\n************************* TURNSTAT CLIENT v0.0.2 ***********************\n\n" )
      where
          allCommands = 
             ClientOptions 

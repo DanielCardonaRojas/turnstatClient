@@ -39,13 +39,13 @@ withOptions opts code =
 mainProcessing :: IO ()
 mainProcessing = do
     clientOpts <- execParser opts
-    putStrLn $ "Starting Turnstat Client with :"  ++ (show $ clientConfig clientOpts)
+    putStrLn $ "Starting Turnstat Client with: "  ++ (show $ clientConfig clientOpts)
     case clientCommand clientOpts of
         CreateTicket o sId -> do
             withOptions clientOpts $ do
-                    api_key <- authenticate'
-                    t <- createTicket' api_key sId o
-                    liftIO $ print t
+                api_key <- authenticate'
+                t <- createTicket' api_key sId o
+                liftIO $ print t
 
         CreateDuplicate o o2 sId -> do
            (t1, t2) <-  requestSameTicket' (clientConfig clientOpts) sId o o2
@@ -90,8 +90,10 @@ mainProcessing = do
         CallArbitrary n -> do
             withOptions clientOpts $ do 
                     api_key <- authenticate'
-                    slot <- setSlot 34 api_key 
-                    liftIO $ putStrLn $ "Calling ticket from slot: " ++ slot
+                    allSlotsIDs <- (map slotID . filter slotEnabled) <$> getAllSlots api_key
+                    someSlot <- liftIO $ chooseRIO allSlotsIDs
+                    slotName <- setSlot someSlot api_key 
+                    liftIO $ putStrLn $ "Calling ticket from slot: " ++ slotName
                     res  <- callArbitraryTicket api_key n
                     finishTicket api_key n
                     liftIO $ print res
@@ -151,7 +153,7 @@ createRandomTickets' :: APIKey -> Int -> Rdr [TurnstatTicket]
 createRandomTickets' api_key count = do  
                 sess <- readSess
                 liftIO $ print $ "received api key: " <> api_key  
-                allSerives <- filter ((== "t") . serviceEnabled) <$> getAllServices' api_key
+                allSerives <- filter serviceEnabled <$> getAllServices' api_key
                 let servicesCount = length allSerives
                 let randomsRIO (a,b) = replicateM count $ randomRIO (a,b)
                 rs <- liftIO (randomsRIO (0,servicesCount - 1) :: IO [Int])
@@ -160,6 +162,7 @@ createRandomTickets' api_key count = do
                 let randomOrigin = map toEnum ro :: [Origin]
                 liftIO $ putStrLn $ "Using random service: " ++ (show randomService)
                 mapM (uncurry $ createTicket' api_key) (zip randomService randomOrigin)
+
 
 {-
 --------------------- Logging -------------------

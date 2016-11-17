@@ -23,18 +23,20 @@ data TurnstatService  = TurnstatService
         {serviceID :: Integer
         , serviceName :: String
         , serviceLetter :: String
-        , serviceEnabled :: String
+        , serviceEnabled :: Bool
         } deriving (Show, Eq)
 
 data TurnstatTicket = TurnstatTicket
-    { tuid :: String
+    { 
+      ticketID :: Int
+    , tuid :: String
     , printable :: Printable
     } deriving (Show, Eq)
 
 data TurnstatSlot = TurnstatSlot
-    { slotID :: String
+    { slotID :: Int
     , slotName :: String
-    , slotEnabled :: String
+    , slotEnabled :: Bool
     } deriving (Show, Read, Eq)
 
 data TurnstatUser = TurnstatUser
